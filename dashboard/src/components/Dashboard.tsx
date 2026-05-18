@@ -31,27 +31,27 @@ function ServiceRow({ container }: { container: ContainerInfo }) {
       href={container.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-150 ${
+      className={`group flex flex-col gap-1 px-4 py-3 rounded-lg border transition-all duration-150 ${
         container.status === 'running'
           ? 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800/50'
           : 'border-zinc-900 opacity-50 cursor-not-allowed'
       }`}
       onClick={container.status !== 'running' ? e => e.preventDefault() : undefined}
     >
-      <div className="flex items-center gap-3">
-        <StatusDot status={container.status} />
-        <span className="text-sm font-medium text-zinc-200">{container.service}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">
-          {container.url}
-        </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <StatusDot status={container.status} />
+          <span className="text-sm font-medium text-zinc-200 truncate">{container.service}</span>
+        </div>
         {container.status === 'running' && (
-          <svg className="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         )}
       </div>
+      <span className="font-mono text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors truncate pl-[18px]">
+        {container.url}
+      </span>
     </a>
   )
 }
@@ -178,7 +178,7 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#09090b]">
-      <div className="max-w-3xl mx-auto px-4 py-10">
+      <div className="max-w-6xl mx-auto px-4 py-10">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-1">
@@ -216,7 +216,7 @@ export function Dashboard() {
           </div>
         )}
 
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
           {groups.map(group => (
             <ProjectCard key={group.project} group={group} />
           ))}
