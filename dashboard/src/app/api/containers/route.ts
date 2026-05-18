@@ -29,7 +29,16 @@ function hasCaddyLabels(labels: Record<string, string>): boolean {
   return 'caddy' in labels || Object.keys(labels).some(k => /^caddy_\d+$/.test(k))
 }
 
-export async function GET() {
+function isSelf(urls: string[], selfHost: string): boolean {
+  if (!selfHost) return false
+  return urls.some(url => {
+    try { return new URL(url).hostname === selfHost } catch { return url === selfHost }
+  })
+}
+
+export async function GET(request: Request) {
+  const selfHost = request.headers.get('host')?.split(':')[0] ?? ''
+
   try {
     const containers = await dockerGet<DockerContainer[]>('/containers/json?all=1')
 
@@ -40,8 +49,9 @@ export async function GET() {
         service: c.Labels['com.docker.compose.service'] ?? c.Names[0]?.replace('/', '') ?? c.Id,
         project: c.Labels['com.docker.compose.project'] ?? 'standalone',
         urls: extractUrls(c.Labels),
-        status: c.State === 'running' ? 'running' : 'stopped',
+        status: (c.State === 'running' ? 'running' : 'stopped') as ContainerInfo['status'],
       }))
+      .filter(c => !isSelf(c.urls, selfHost))
 
     return NextResponse.json(result)
   } catch {
