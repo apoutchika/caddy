@@ -1,0 +1,24 @@
+# Caddy data (certificats, config persistée)
+data/
+
+# Next.js
+dashboard/.next/
+dashboard/out/
+
+# Dépendances
+dashboard/node_modules/
+
+# Variables d'environnement
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,40 @@
+services:
+  caddy:
+    image: lucaslorentz/caddy-docker-proxy:ci-alpine
+    restart: unless-stopped
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/data
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    command: ["docker-proxy", "--caddyfile-path", "/etc/caddy/Caddyfile"]
+    networks:
+      - caddy
+
+  dashboard:
+    build: ./dashboard
+    container_name: caddy-dashboard
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/caddy-data:ro
+    networks:
+      - caddy
+      - default
+    labels:
+      caddy_0: dashboard.devel
+      caddy_0.reverse_proxy: "{{upstreams 3000}}"
+      caddy_0.reverse_proxy.flush_interval: "-1"
+      caddy_1: http://dashboard.devel
+      caddy_1.reverse_proxy: "{{upstreams 3000}}"
+      caddy_1.reverse_proxy.flush_interval: "-1"
+    depends_on:
+      - caddy
+
+networks:
+  caddy:
+    name: caddy
+    external: true

@@ -1,0 +1,20 @@
+services:
+  dashboard:
+    build: .
+    container_name: caddy-dashboard
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /home/julien/www/caddy/data:/caddy-data:ro
+    ports:
+      - "3033:3000"    # accès HTTP direct (avant install du certificat)
+    networks:
+      - caddy
+      - default
+    labels:
+      caddy: dashboard.devel
+      caddy.reverse_proxy: "{{upstreams 3000}}"
+
+networks:
+  caddy:
+    external: true
