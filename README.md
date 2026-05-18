@@ -1,23 +1,26 @@
 # Caddy Dashboard
 
-Reverse proxy HTTPS local automatique, piloté par les labels Docker.  
-Un dashboard Next.js liste en temps réel tous les services exposés et permet de télécharger le certificat CA local.
+> **Local development tool only.**  
+> The current configuration (self-signed certificates, dashboard exposed without authentication, `.devel` TLD) is designed for local HTTPS development. It is not suitable for production use as-is.
+
+Automatic local HTTPS reverse proxy, driven by Docker labels.  
+A Next.js dashboard lists all exposed services in real time and lets you download the local CA certificate.
 
 ---
 
-## Fonctionnement
+## How it works
 
 ```
-Navigateur
-    │  https://mon-service.devel
+Browser
+    │  https://my-service.devel
     ▼
 ┌─────────────────────────────────┐
-│  Caddy  (caddy-docker-proxy)    │  ← lit les labels Docker automatiquement
-│  :80 / :443  •  certificats TLS │
+│  Caddy  (caddy-docker-proxy)    │  ← reads Docker labels automatically
+│  :80 / :443  •  TLS certs      │
 └────────────┬────────────────────┘
              │  reverse_proxy
     ┌─────────┴──────────┐
-    │  Services Docker   │  ← n'importe quel conteneur avec un label caddy
+    │  Docker services   │  ← any container with a caddy label
     └────────────────────┘
              │
     ┌────────┴───────────┐
@@ -26,60 +29,110 @@ Navigateur
     └────────────────────┘
 ```
 
-[`lucaslorentz/caddy-docker-proxy`](https://github.com/lucaslorentz/caddy-docker-proxy) surveille le socket Docker et recharge la config Caddy à chaud quand un conteneur démarre ou s'arrête.  
-Le dashboard consomme lui aussi le socket Docker pour afficher l'état des services en temps réel via SSE.
+[`lucaslorentz/caddy-docker-proxy`](https://github.com/lucaslorentz/caddy-docker-proxy) watches the Docker socket and hot-reloads Caddy's config whenever a container starts or stops.  
+The dashboard also consumes the Docker socket to display service status in real time via SSE.
 
 ---
 
-## Prérequis
+## Prerequisites
 
 - Docker + Docker Compose v2
-- Le réseau externe `caddy` doit exister (créé une seule fois) :
+- The external `caddy` network must exist (created once):
 
 ```bash
 docker network create caddy
 ```
 
+- **dnsmasq** configured to resolve `*.devel` to localhost (see section below)
+
 ---
 
-## Démarrage
+## dnsmasq setup
+
+`.devel` is not a real TLD, so your OS won't resolve it by default. dnsmasq lets you route any `*.devel` domain to `127.0.0.1` without touching `/etc/hosts`.
+
+### Linux (systemd-resolved)
+
+```bash
+# Install dnsmasq
+sudo apt install dnsmasq        # Debian / Ubuntu
+sudo pacman -S dnsmasq          # Arch
+
+# Add a drop-in rule
+echo "address=/.devel/127.0.0.1" | sudo tee /etc/dnsmasq.d/devel.conf
+
+# Restart dnsmasq
+sudo systemctl restart dnsmasq
+
+# Tell systemd-resolved to use dnsmasq for .devel
+sudo mkdir -p /etc/systemd/resolved.conf.d
+cat <<EOF | sudo tee /etc/systemd/resolved.conf.d/devel.conf
+[Resolve]
+DNS=127.0.0.1
+Domains=~devel
+EOF
+
+sudo systemctl restart systemd-resolved
+```
+
+### macOS
+
+```bash
+brew install dnsmasq
+
+# Add the wildcard rule
+echo "address=/.devel/127.0.0.1" >> $(brew --prefix)/etc/dnsmasq.conf
+
+# Start dnsmasq as a system service
+sudo brew services start dnsmasq
+
+# Tell macOS to use dnsmasq for .devel only
+sudo mkdir -p /etc/resolver
+echo "nameserver 127.0.0.1" | sudo tee /etc/resolver/devel
+```
+
+Verify with `ping anything.devel` — it should resolve to `127.0.0.1`.
+
+---
+
+## Getting started
 
 ```bash
 docker compose up -d
 ```
 
-Le dashboard est accessible sur **https://dashboard.devel** dès que le certificat CA est importé (voir section ci-dessous).
+The dashboard is available at **https://dashboard.devel** once the CA certificate is imported (see below).
 
 ---
 
-## Importer le certificat CA
+## Importing the CA certificate
 
-Caddy génère un CA local au premier démarrage d'un service HTTPS. Sans ce certificat importé dans le navigateur, toutes les URLs `.devel` afficheront une alerte de sécurité.
+Caddy generates a local CA on the first HTTPS service startup. Without this certificate imported in the browser, all `.devel` URLs will show a security warning.
 
-1. Ouvrir **https://dashboard.devel**
-2. Cliquer sur **Télécharger le CA**
-3. Importer `caddy-local-ca.crt` dans le trousseau du système ou du navigateur
+1. Open **https://dashboard.devel**
+2. Click **Download CA**
+3. Import `caddy-local-ca.crt` into your system or browser trust store
 
-> **macOS** : double-clic sur le fichier → Trousseau d'accès → passer en "Toujours approuver"  
-> **Linux** : `sudo cp caddy-local-ca.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates`  
-> **Firefox** : Paramètres → Vie privée → Certificats → Importer
+> **macOS**: double-click the file → Keychain Access → set to "Always Trust"  
+> **Linux**: `sudo cp caddy-local-ca.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates`  
+> **Firefox**: Settings → Privacy & Security → Certificates → Import
 
 ---
 
-## Exposer un service
+## Exposing a service
 
-Ajouter des labels au conteneur à exposer. Le service n'a pas besoin d'être dans le même `docker-compose.yml`, il suffit qu'il soit sur le réseau `caddy`.
+Add labels to the container you want to expose. The service does not need to be in the same `docker-compose.yml` — it just needs to be on the `caddy` network.
 
-### URL unique
+### Single URL
 
 ```yaml
 services:
-  mon-app:
-    image: mon-image
+  my-app:
+    image: my-image
     networks:
       - caddy
     labels:
-      caddy: mon-app.devel
+      caddy: my-app.devel
       caddy.reverse_proxy: "{{upstreams 8080}}"
 
 networks:
@@ -87,61 +140,61 @@ networks:
     external: true
 ```
 
-### URLs multiples (HTTP + HTTPS, plusieurs domaines…)
+### Multiple URLs (HTTP + HTTPS, several domains…)
 
 ```yaml
 labels:
-  caddy_0: mon-app.devel
+  caddy_0: my-app.devel
   caddy_0.reverse_proxy: "{{upstreams 8080}}"
-  caddy_1: http://mon-app.devel
+  caddy_1: http://my-app.devel
   caddy_1.reverse_proxy: "{{upstreams 8080}}"
 ```
 
-Les labels `caddy_0`, `caddy_1`, … sont tous détectés et affichés dans le dashboard.
+All `caddy_0`, `caddy_1`… labels are detected and displayed in the dashboard.
 
 ---
 
-## Structure du projet
+## Project structure
 
 ```
 caddy/
-├── Caddyfile              # Config globale (local_certs)
+├── Caddyfile              # Global config (local_certs)
 ├── docker-compose.yml     # Caddy + Dashboard
-├── data/                  # Données Caddy (certificats, state) — ignoré par git
-└── dashboard/             # Application Next.js 15 / React 19
+├── data/                  # Caddy data (certs, state) — git-ignored
+└── dashboard/             # Next.js 15 / React 19 app
     └── src/
         ├── app/
         │   ├── layout.tsx
         │   ├── page.tsx
         │   ├── icon.svg           # Favicon
         │   └── api/
-        │       ├── containers/    # GET — liste les conteneurs avec labels caddy
-        │       ├── events/        # SSE — stream des événements Docker
-        │       └── cert/          # GET/HEAD — certificat CA local
+        │       ├── containers/    # GET — list containers with caddy labels
+        │       ├── events/        # SSE — Docker event stream
+        │       └── cert/          # GET/HEAD — local CA certificate
         ├── components/
-        │   └── Dashboard.tsx      # UI principale
+        │   └── Dashboard.tsx      # Main UI
         ├── lib/
-        │   └── docker.ts          # Client socket Docker (sans dépendances)
+        │   └── docker.ts          # Docker socket client (no external deps)
         └── types/
             └── index.ts
 ```
 
 ---
 
-## Stack technique
+## Tech stack
 
-| Couche | Technologie |
+| Layer | Technology |
 |---|---|
 | Reverse proxy | [Caddy](https://caddyserver.com) via `caddy-docker-proxy` |
 | Dashboard | Next.js 15 (App Router) + React 19 |
-| Style | Tailwind CSS v3 |
-| Langage | TypeScript strict |
+| Styling | Tailwind CSS v3 |
+| Language | TypeScript strict |
 | Package manager | pnpm |
-| Conteneurisation | Docker Compose |
+| Containerisation | Docker Compose |
 
 ---
 
-## Développement local du dashboard
+## Local dashboard development
 
 ```bash
 cd dashboard
@@ -149,4 +202,4 @@ pnpm install
 pnpm dev      # http://localhost:3000
 ```
 
-Le socket Docker (`/var/run/docker.sock`) doit être accessible depuis la machine hôte.
+The Docker socket (`/var/run/docker.sock`) must be accessible from the host machine.
