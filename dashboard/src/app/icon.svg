@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark rounded background -->
+  <rect width="32" height="32" rx="7" fill="#09090b"/>
+
+  <!-- Glow effect behind lock -->
+  <ellipse cx="16" cy="20" rx="8" ry="6" fill="#10b981" opacity="0.12"/>
+
+  <!-- Lock body -->
+  <rect x="9" y="15" width="14" height="11" rx="3" fill="#10b981"/>
+
+  <!-- Lock shackle -->
+  <path d="M12 15v-3.5a4 4 0 0 1 8 0V15" fill="none" stroke="#34d399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Keyhole circle -->
+  <circle cx="16" cy="20.5" r="2.2" fill="#052e16"/>
+
+  <!-- Keyhole stem -->
+  <rect x="15" y="20.5" width="2" height="3" rx="0.8" fill="#052e16"/>
+</svg>
