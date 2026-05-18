@@ -25,34 +25,43 @@ function StatusDot({ status }: { status: ContainerInfo['status'] }) {
   return <span className="inline-flex rounded-full h-2 w-2 bg-zinc-600" />
 }
 
-function ServiceRow({ container }: { container: ContainerInfo }) {
+function UrlLink({ url, disabled }: { url: string; disabled: boolean }) {
   return (
     <a
-      href={container.url}
+      href={disabled ? undefined : url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group flex flex-col gap-1 px-4 py-3 rounded-lg border transition-all duration-150 ${
-        container.status === 'running'
-          ? 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800/50'
-          : 'border-zinc-900 opacity-50 cursor-not-allowed'
-      }`}
-      onClick={container.status !== 'running' ? e => e.preventDefault() : undefined}
+      className={`group flex items-center gap-2 min-w-0 ${disabled ? 'cursor-not-allowed' : ''}`}
+      onClick={disabled ? e => e.preventDefault() : undefined}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <StatusDot status={container.status} />
-          <span className="text-sm font-medium text-zinc-200 truncate">{container.service}</span>
-        </div>
-        {container.status === 'running' && (
-          <svg className="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        )}
-      </div>
-      <span className="font-mono text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors truncate pl-[18px]">
-        {container.url}
+      <span className="font-mono text-xs text-zinc-500 group-hover:text-zinc-300 transition-colors truncate">
+        {url}
       </span>
+      {!disabled && (
+        <svg className="w-3 h-3 text-zinc-600 group-hover:text-zinc-300 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      )}
     </a>
+  )
+}
+
+function ServiceRow({ container }: { container: ContainerInfo }) {
+  const disabled = container.status !== 'running'
+  return (
+    <div className={`flex flex-col gap-2 px-4 py-3 rounded-lg border transition-all duration-150 ${
+      disabled ? 'border-zinc-900 opacity-50' : 'border-zinc-800'
+    }`}>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <StatusDot status={container.status} />
+        <span className="text-sm font-medium text-zinc-200 truncate">{container.service}</span>
+      </div>
+      <div className="flex flex-col gap-1 pl-[18px]">
+        {container.urls.map(url => (
+          <UrlLink key={url} url={url} disabled={disabled} />
+        ))}
+      </div>
+    </div>
   )
 }
 

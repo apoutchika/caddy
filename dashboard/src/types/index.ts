@@ -2,7 +2,7 @@ export interface ContainerInfo {
   id: string
   service: string
   project: string
-  url: string
+  urls: string[]
   status: 'running' | 'stopped'
 }
 
