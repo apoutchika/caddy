@@ -222,7 +222,16 @@ export function Dashboard() {
 
   useEffect(() => {
     const es = new EventSource('/api/events')
-    es.onmessage = () => fetchContainers()
+    es.onmessage = (e: MessageEvent<string>) => {
+      // Docker fires `start`/`create` before the API reflects the new state.
+      // A short delay lets the daemon settle before we fetch.
+      const needsDelay = e.data === 'start' || e.data === 'create'
+      if (needsDelay) {
+        setTimeout(fetchContainers, 500)
+      } else {
+        fetchContainers()
+      }
+    }
     return () => es.close()
   }, [fetchContainers])
 

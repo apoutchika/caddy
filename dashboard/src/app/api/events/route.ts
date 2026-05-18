@@ -20,7 +20,7 @@ export async function GET() {
           try {
             const event = JSON.parse(line) as { Action: string }
             if (RELEVANT.has(event.Action)) {
-              controller.enqueue(encoder.encode('data: refresh\n\n'))
+              controller.enqueue(encoder.encode(`data: ${event.Action}\n\n`))
             }
           } catch {
             // ligne mal formée
