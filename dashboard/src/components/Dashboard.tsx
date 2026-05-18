@@ -22,7 +22,6 @@ function StatusIndicator({ status }: { status: ContainerInfo['status'] }) {
       </span>
     )
   }
-  // Carré au lieu de cercle : double encodage forme + couleur pour les daltoniens
   return <span className="inline-flex h-2 w-2 rounded-sm bg-zinc-600 shrink-0" aria-label="arrêté" />
 }
 
@@ -62,7 +61,6 @@ function ServiceRow({ container }: { container: ContainerInfo }) {
   const disabled = container.status !== 'running'
   const singleUrl = container.urls.length === 1
 
-  // 1 lien : toujours une seule ligne, cliquable si actif
   if (singleUrl) {
     const inner = (
       <>
@@ -97,7 +95,6 @@ function ServiceRow({ container }: { container: ContainerInfo }) {
     )
   }
 
-  // Plusieurs liens : layout avec pills
   return (
     <div className={`flex flex-col gap-2 px-4 py-2.5 rounded-lg border transition-all duration-150 ${
       disabled ? 'border-zinc-900 opacity-50' : 'border-zinc-800'
@@ -192,22 +189,8 @@ function CertBanner({ onDownload }: { onDownload: () => void }) {
 
 export function Dashboard() {
   const [groups, setGroups] = useState<ProjectGroup[]>([])
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const fetchContainers = useCallback(async () => {
-    try {
-      const res = await fetch('/api/containers')
-      if (!res.ok) throw new Error('fetch failed')
-      const data = (await res.json()) as ContainerInfo[]
-      setGroups(groupByProject(data))
-      setError(null)
-    } catch {
-      setError('Impossible de contacter Docker')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const [connected, setConnected] = useState(true)
 
   const downloadCert = useCallback(() => {
     const a = document.createElement('a')
@@ -217,28 +200,25 @@ export function Dashboard() {
   }, [])
 
   useEffect(() => {
-    fetchContainers()
-  }, [fetchContainers])
-
-  useEffect(() => {
     const es = new EventSource('/api/events')
+
     es.onmessage = (e: MessageEvent<string>) => {
-      // Docker fires `start`/`create` before the API reflects the new state.
-      // A short delay lets the daemon settle before we fetch.
-      const needsDelay = e.data === 'start' || e.data === 'create'
-      if (needsDelay) {
-        setTimeout(fetchContainers, 500)
-      } else {
-        fetchContainers()
+      try {
+        const containers = JSON.parse(e.data) as ContainerInfo[]
+        setGroups(groupByProject(containers))
+        setConnected(true)
+        setLoading(false)
+      } catch {
+        // malformed message — ignore
       }
     }
-    return () => es.close()
-  }, [fetchContainers])
 
-  const totalRunning = groups.reduce(
-    (acc, g) => acc + g.containers.filter(c => c.status === 'running').length,
-    0,
-  )
+    es.onerror = () => setConnected(false)
+
+    return () => es.close()
+  }, [])
+
+  const totalRunning = groups.reduce((acc, g) => acc + g.containers.filter(c => c.status === 'running').length, 0)
   const totalContainers = groups.reduce((acc, g) => acc + g.containers.length, 0)
 
   return (
@@ -253,6 +233,10 @@ export function Dashboard() {
               </svg>
             </div>
             <h1 className="text-lg font-semibold text-zinc-100">Caddy Dashboard</h1>
+            <span
+              className={`inline-flex h-1.5 w-1.5 rounded-full transition-colors duration-500 ${connected ? 'bg-sky-500' : 'bg-zinc-600'}`}
+              title={connected ? 'Connecté' : 'Reconnexion…'}
+            />
           </div>
           <p className="text-sm text-zinc-500 ml-11">
             {loading ? 'Chargement…' : `${totalRunning} service${totalRunning > 1 ? 's' : ''} actif${totalRunning > 1 ? 's' : ''} sur ${totalContainers}`}
@@ -264,15 +248,8 @@ export function Dashboard() {
           <CertBanner onDownload={downloadCert} />
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="mb-6 px-4 py-3 rounded-lg border border-red-800/50 bg-red-950/30 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-
         {/* Projects */}
-        {!loading && groups.length === 0 && !error && (
+        {!loading && groups.length === 0 && (
           <div className="text-center py-16 text-zinc-600">
             <svg className="w-10 h-10 mx-auto mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
