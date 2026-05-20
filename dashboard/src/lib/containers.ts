@@ -15,17 +15,18 @@ function normalizeUrl(value: string): string {
 
 function extractUrls(labels: Record<string, string>): string[] {
   const urls: string[] = []
-  if (labels.caddy) urls.push(normalizeUrl(labels.caddy))
+  if (labels.caddy?.trim()) urls.push(normalizeUrl(labels.caddy))
   let i = 0
   while (`caddy_${i}` in labels) {
-    urls.push(normalizeUrl(labels[`caddy_${i}`]))
+    if (labels[`caddy_${i}`]?.trim()) urls.push(normalizeUrl(labels[`caddy_${i}`]))
     i++
   }
   return urls
 }
 
 function hasCaddyLabels(labels: Record<string, string>): boolean {
-  return 'caddy' in labels || Object.keys(labels).some(k => /^caddy_\d+$/.test(k))
+  if (labels.caddy?.trim()) return true
+  return Object.keys(labels).some(k => /^caddy_\d+$/.test(k) && labels[k]?.trim())
 }
 
 function isSelf(urls: string[], selfHost: string): boolean {

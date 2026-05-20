@@ -25,10 +25,10 @@ services:
       - caddy
       - default
     labels:
-      caddy_0: dashboard.devel
+      caddy_0: caddy.devel
       caddy_0.reverse_proxy: "{{upstreams 3000}}"
       caddy_0.reverse_proxy.flush_interval: "-1"
-      caddy_1: http://dashboard.devel
+      caddy_1: http://caddy.devel
       caddy_1.reverse_proxy: "{{upstreams 3000}}"
       caddy_1.reverse_proxy.flush_interval: "-1"
     depends_on:
