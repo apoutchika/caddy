@@ -24,7 +24,7 @@ Browser
     └────────────────────┘
              │
     ┌────────┴───────────┐
-    │  Dashboard         │  https://dashboard.devel
+    │  Dashboard         │  https://caddy.devel
     │  (Next.js :3000)   │
     └────────────────────┘
 ```
@@ -101,7 +101,7 @@ Verify with `ping anything.devel` — it should resolve to `127.0.0.1`.
 docker compose up -d
 ```
 
-The dashboard is available at **https://dashboard.devel** once the CA certificate is imported (see below).
+The dashboard is available at **https://caddy.devel** once the CA certificate is imported (see below).
 
 ---
 
@@ -109,7 +109,7 @@ The dashboard is available at **https://dashboard.devel** once the CA certificat
 
 Caddy generates a local CA on the first HTTPS service startup. Without this certificate imported in the browser, all `.devel` URLs will show a security warning.
 
-1. Open **https://dashboard.devel**
+1. Open **https://caddy.devel**
 2. Click **Download CA**
 3. Import `caddy-local-ca.crt` into your system or browser trust store
 

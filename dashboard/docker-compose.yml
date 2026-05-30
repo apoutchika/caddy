@@ -12,7 +12,7 @@ services:
       - caddy
       - default
     labels:
-      caddy: dashboard.devel
+      caddy: caddy.devel
       caddy.reverse_proxy: "{{upstreams 3000}}"
 
 networks:
