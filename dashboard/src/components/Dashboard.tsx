@@ -9,8 +9,12 @@ function groupByProject(containers: ContainerInfo[]): ProjectGroup[] {
     map.set(c.project, [...(map.get(c.project) ?? []), c])
   }
   return Array.from(map.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
     .map(([project, containers]) => ({ project, containers }))
+    .sort((a, b) => {
+      const aRunning = a.containers.filter(c => c.status === 'running').length
+      const bRunning = b.containers.filter(c => c.status === 'running').length
+      return bRunning - aRunning || a.project.localeCompare(b.project)
+    })
 }
 
 function StatusIndicator({ status }: { status: ContainerInfo['status'] }) {
